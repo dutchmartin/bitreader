@@ -46,19 +46,19 @@
 //! Note that the code will likely not work correctly if the slice is longer than 2^61 bytes, but
 //! exceeding that should be pretty unlikely. Let's get back to this when people read exabytes of
 //! information one bit at a time.
-#![no_std]
-cfg_if::cfg_if!{
-    if #[cfg(feature = "std")] {
+//#![no_std]
+//cfg_if::cfg_if!{
+//    if #[cfg(feature = "std")] {
         extern crate std;
         use std::prelude::v1::*;
         use std::fmt;
         use std::error::Error;
         use std::result;
-    } else {
-        use core::result;
-        use core::fmt;
-    }
-}
+//    } else {
+//        use core::result;
+//        use core::fmt;
+//    }
+//}
 
 #[cfg(test)]
 mod tests;
@@ -141,6 +141,10 @@ impl<'a> BitReader<'a> {
     pub fn read_u16(&mut self, bit_count: u8) -> Result<u16> {
         let value = self.read_value(bit_count, 16)?;
         Ok((value & 0xffff) as u16)
+    }
+
+    pub fn read_le_u16(&mut self, bit_count: u8) -> Result<u16> {
+        Ok(1u16)
     }
 
     /// Read at most 32 bits into a u32.
@@ -267,6 +271,45 @@ impl<'a> BitReader<'a> {
             let byte_index = (i / 8) as usize;
             let byte = self.bytes[byte_index];
             let shift = 7 - (i % 8);
+            let bit = (byte >> shift) as u64 & 1;
+            value = (value << 1) | bit;
+        }
+
+        self.position = end_position;
+        Ok(value)
+    }
+    pub(crate) fn read_le_value(&mut self, bit_count: u8, maximum_count: u8) -> Result<u64> {
+        if bit_count == 0 {
+            return Ok(0);
+        }
+
+        if bit_count > maximum_count {
+            return Err(BitReaderError::TooManyBitsForType {
+                position: self.position,
+                requested: bit_count,
+                allowed: maximum_count,
+            });
+        }
+        let start_position = self.position;
+        let end_position = self.position + bit_count as u64;
+        if end_position > self.bytes.len() as u64 * 8 {
+            return Err(BitReaderError::NotEnoughData {
+                position: self.position,
+                length: (self.bytes.len() * 8) as u64,
+                requested: bit_count as u64,
+            });
+        }
+
+        let mut value: u64 = 0;
+
+        for i in (start_position..end_position).rev() {
+            let byte_index = (i / 8) as usize;
+ //           dbg!(byte_index);
+            let byte = self.bytes[byte_index];
+            let shift = 7 - (i % 8);
+//            dbg!(i);
+//            dbg!(shift); cargo test -- --nocapture
+dbg!(format!("{:b}", value));
             let bit = (byte >> shift) as u64 & 1;
             value = (value << 1) | bit;
         }

@@ -2,6 +2,7 @@
 name = "bitreader"
 version = "0.3.2"
 authors = ["Ilkka Rauta <ilkka.rauta@gmail.com>"]
+edition = "2018"
 
 description = """
 BitReader helps reading individual bits from a slice of bytes.

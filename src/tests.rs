@@ -205,3 +205,18 @@ fn read_slice_too_much() {
     });
     assert_eq!(&output, &[0u8; 4]);
 }
+
+#[test]
+fn read_le() {
+    let bytes: &[u8; 10] = &[
+        255, 0, 0, 0, 255, 0, 255, 0, 0b00111110, 0b00000010
+    ];
+    let mut reader = BitReader::new(bytes);
+    let result = reader.read_le_value(32, 32).expect("Value should not error");
+    assert_eq!(result, 255);
+    let result = reader.read_le_value(32, 32).expect("Value should not error");
+    assert_eq!(result, 16711935);
+    let result = reader.read_le_value(12, 16).expect("Value should not error");
+    assert_eq!(result, 574);
+
+}
